@@ -25,5 +25,37 @@ userRouter.post(
   identifyUser,
   userController.unfollowUserController,
 );
+/**
+ * @route GET /api/users/follow/requests
+ * @description Follow request
+ * @access Private
+ */
+userRouter.get(
+  "/follow/requests",
+  identifyUser,
+  userController.getPendingRequests,
+);
 
+/**
+ * @route patch /api/users/follow/accept/:id
+ * @description Accept follow request
+ * @access Private
+ */
+
+userRouter.patch(
+  "/follow/accept/:id",
+  identifyUser,
+  userController.acceptFollowRequest,
+);
+
+/**
+ * @route patch /api/users/follow/reject/:id
+ * @description Reject follow request
+ * @access Private
+ */
+userRouter.patch(
+  "/follow/reject/:id",
+  identifyUser,
+  userController.rejectFollowRequest,
+);
 module.exports = userRouter;
