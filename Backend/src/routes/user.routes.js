@@ -10,7 +10,7 @@ const userRouter = express.Router();
  * @access Private
  */
 userRouter.post(
-  "/follow/:id",
+  "/follow/:username",
   identifyUser,
   userController.followUserController,
 );
@@ -26,36 +26,33 @@ userRouter.post(
   userController.unfollowUserController,
 );
 /**
- * @route GET /api/users/follow/requests
- * @description Follow request
+ * @route Get /api/users/follow-req/
+ * @description Follow requests
  * @access Private
  */
 userRouter.get(
   "/follow/requests",
   identifyUser,
-  userController.getPendingRequests,
+  userController.getFollowRequestsController,
 );
 
-/**
- * @route patch /api/users/follow/accept/:id
- * @description Accept follow request
- * @access Private
- */
-
+// Accept Follow Request
 userRouter.patch(
-  "/follow/accept/:id",
+  "/follow/accept/:username",
   identifyUser,
-  userController.acceptFollowRequest,
+  userController.acceptFollowRequestController,
+);
+// Reject Follow Request Controller
+userRouter.patch(
+  "/follow/reject/:username",
+  identifyUser,
+  userController.rejectFollowRequestController,
 );
 
-/**
- * @route patch /api/users/follow/reject/:id
- * @description Reject follow request
- * @access Private
- */
-userRouter.patch(
-  "/follow/reject/:id",
+// Get Sidebar users
+userRouter.get(
+  "/sidebar/users",
   identifyUser,
-  userController.rejectFollowRequest,
+  userController.getSidebarUsersController,
 );
 module.exports = userRouter;

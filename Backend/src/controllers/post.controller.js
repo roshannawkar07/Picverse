@@ -2,34 +2,15 @@ const postModel = require("../models/post.model");
 const ImageKit = require("@imagekit/nodejs");
 const { toFile } = require("@imagekit/nodejs");
 const jwt = require("jsonwebtoken");
+const likeModel = require("../models/like.model");
 
+// Image Kit SetUp
 const imagekit = new ImageKit({
   privateKey: process.env.IMAGEKIT_PRIVATE_KEY,
 });
 
-// Creating a post :
+// Create Posts Controller
 async function createPostController(req, res) {
-  console.log(req.body, req.file);
-
-  // if (!token) {
-  //   return res.status(401).json({
-  //     message: "Token not provided, Unauthorized access",
-  //   });
-  // }
-
-  // let decoded;
-
-  // //Decoding the token :
-  // try {
-  //   decoded = jwt.verify(token, process.env.JWT_SECRET);
-  // } catch (err) {
-  //   return res.status(401).json({
-  //     message: "user not found authorized",
-  //   });
-  // }
-
-  // console.log(decoded);
-
   const file = await imagekit.files.upload({
     file: await toFile(Buffer.from(req.file.buffer), "file"),
     fileName: "Test",
@@ -48,24 +29,8 @@ async function createPostController(req, res) {
   });
 }
 
-// get all post :
-async function getPostsController(req, res) {
-  // if (!token) {
-  //   return res.status(401).json({
-  //     message: "Unauthorized Access",
-  //   });
-  // }
-
-  // let decoded;
-
-  // try {
-  //   decoded = jwt.verify(token, process.env.JWT_SECRET);
-  // } catch (err) {
-  //   return res.status(401).json({
-  //     message: "Invalid token",
-  //   });
-  // }
-
+// Get Post Controller
+async function getPostController(req, res) {
   const userId = req.user.id;
 
   const posts = await postModel.find({
@@ -78,33 +43,19 @@ async function getPostsController(req, res) {
   });
 }
 
-// get post details
-async function postDetailsController(req, res) {
-  // if (!token) {
-  //   return res.status(401).json({
-  //     message: "Unauthorize Access",
-  //   });
-  // }
-
-  // let decoded;
-
-  // try {
-  //   decoded = jwt.verify(token, process.env.JWT_SECRET);
-  // } catch (err) {
-  //   return res.status(401).json({
-  //     message: "Invalid Token",
-  //   });
-  // }
-
+// Get post details Cantrollers
+async function getPostDetailsController(req, res) {
   const userId = req.user.id;
   const postId = req.params.postId;
 
   const post = await postModel.findById(postId);
+
   if (!post) {
     return res.status(404).json({
       message: "Post not found.",
     });
   }
+
   const isValidUser = post.user.toString() === userId;
 
   if (!isValidUser) {
@@ -118,35 +69,81 @@ async function postDetailsController(req, res) {
     post,
   });
 }
+// Like Post Controller
+async function likePostController(req, res) {
+  const username = req.user.username;
+  const postId = req.params.postId;
 
-// Get all feed
-async function getFeedController(req, res) {
-  // if (!token) {
-  //   return res.status(401).json({
-  //     message: "Unauthorized access",
-  //   });
-  // }
+  const post = await postModel.findById(postId);
 
-  // let decoded;
+  if (!post) {
+    return res.status(404).json({
+      message: "Post not found.",
+    });
+  }
 
-  // try {
-  //   decoded = jwt.verify(token, process.env.JWT_SECRET);
-  // } catch (err) {
-  //   return res.status(401).json({
-  //     message: "Invalid Token",
-  //   });
-  // }
-
-  const feed = await postModel.find({});
+  const like = await likeModel.create({
+    post: postId,
+    user: username,
+  });
 
   res.status(200).json({
-    message: "Feed fetched successfully",
-    feed,
+    message: "Post liked successfully.",
+    like,
   });
 }
+
+// Unlike Post Controller
+async function unLikePostController(req, res) {
+  const postId = req.params.postId;
+  const username = req.user.username;
+
+  const isLiked = await likeModel.findOne({
+    post: postId,
+    user: username,
+  });
+
+  if (!isLiked) {
+    return res.status(400).json({
+      message: "Post didn't like",
+    });
+  }
+
+  await likeModel.findOneAndDelete({ _id: isLiked._id });
+
+  return res.status(200).json({
+    message: "post un liked successfully.",
+  });
+}
+
+// Get Feed Controller
+async function getFeedController(req, res) {
+  const user = req.user;
+
+  const posts = await Promise.all(
+    (await postModel.find({}).populate("user").lean()).map(async (post) => {
+      const isLiked = await likeModel.findOne({
+        user: user.username,
+        post: post._id,
+      });
+
+      post.isLiked = Boolean(isLiked);
+
+      return post;
+    }),
+  );
+
+  res.status(200).json({
+    message: "posts fetched successfully.",
+    posts,
+  });
+}
+
 module.exports = {
   createPostController,
-  getPostsController,
-  postDetailsController,
+  getPostController,
+  getPostDetailsController,
+  likePostController,
   getFeedController,
+  unLikePostController,
 };
